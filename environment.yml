@@ -1,0 +1,29 @@
+name: stroke_rai
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - "libblas=*=*openblas"
+  - numpy=1.26.2
+  - pandas=1.5.3
+  - scipy=1.13.1
+  - scikit-learn=1.5.1
+  - imbalanced-learn
+  - matplotlib=3.9.2
+  - seaborn
+  - ipywidgets
+  - jupyterlab
+  - notebook
+  - ipykernel
+  - joblib
+  - threadpoolctl
+  - statsmodels
+  - pip:
+      - responsibleai
+      - raiwidgets
+      - interpret-community
+      - erroranalysis
+      - dice-ml
+      - econml
+      - raiutils
