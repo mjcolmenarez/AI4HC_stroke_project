@@ -227,7 +227,7 @@ def positive_scores(estimator, X) -> np.ndarray:
         "Estimator must implement predict_proba or decision_function")
 
 
-def auc_report(y_true, y_score, name: str = "model", plot: bool = True) -> Dict[str, float]:
+def auc_report(y_true, y_score, name: str = "model", plot: bool = True, label: str = "positive outcome") -> Dict[str, float]:
     """
     Print and return ROC AUC, PR AUC, prevalence, and lift. Optionally plot ROC and PR curves.
     """
@@ -242,7 +242,7 @@ def auc_report(y_true, y_score, name: str = "model", plot: bool = True) -> Dict[
     print(f"{name}")
     print(f"PR AUC: {pr_auc:.3f}")
     print(f"ROC AUC: {roc:.3f}")
-    print(f"Recorded OUD prevalence: {prevalence:.3f}")
+    print(f"{label.capitalize()} prevalence: {prevalence:.3f}")
     print(f"PR AUC relative to prevalence baseline: {lift:.2f} times")
 
     if plot:
@@ -252,7 +252,7 @@ def auc_report(y_true, y_score, name: str = "model", plot: bool = True) -> Dict[
             f"Model (area under ROC curve = {roc:.3f})"
         )
         roc_display.ax_.set_xlabel(
-            "False positive rate (share of records without recorded OUD flagged)"
+            f"False positive rate (share of records without {label} flagged)"
         )
         roc_display.ax_.set_ylabel("True positive rate (recall / sensitivity)")
         roc_display.ax_.legend()
@@ -268,10 +268,10 @@ def auc_report(y_true, y_score, name: str = "model", plot: bool = True) -> Dict[
             f"Model (area under precision-recall curve = {pr_auc:.3f})"
         )
         pr_display.ax_.set_xlabel(
-            "Recall (sensitivity, share of recorded OUD cases flagged)"
+            f"Recall (sensitivity, share of {label} cases flagged)"
         )
         pr_display.ax_.set_ylabel(
-            "Precision (share of alerts with recorded OUD)"
+            f"Precision (share of alerts with {label})"
         )
         pr_display.ax_.legend()
         plt.title(
@@ -282,7 +282,6 @@ def auc_report(y_true, y_score, name: str = "model", plot: bool = True) -> Dict[
         plt.show()
 
     return {"name": name, "roc_auc": roc, "pr_auc": pr_auc, "prevalence": prevalence, "lift": lift}
-
 
 def tradeoff_table(y_true, y_score, thresholds: Optional[np.ndarray] = None) -> pd.DataFrame:
     """
