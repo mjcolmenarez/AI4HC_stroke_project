@@ -489,7 +489,7 @@ def plot_cumulative_recall_at_threshold(y_true, y_score, chosen_threshold):
     plt.plot(
         alerts,
         recall_curve,
-        label="Cumulative recall (share of recorded OUD cases flagged)",
+        label="Cumulative recall (share of recorded stroke cases flagged)",
     )
     plt.axvline(n_alerts, linestyle="--", color="red",
                 label=f"Alerts at threshold = {n_alerts}")
@@ -497,8 +497,8 @@ def plot_cumulative_recall_at_threshold(y_true, y_score, chosen_threshold):
     plt.text(n_alerts + max(2, len(y_sorted)//100), rec_at_thr,
              f"Recall = {rec_at_thr:.2f}", va="center")
     plt.xlabel("Number of alerts")
-    plt.ylabel("Cumulative recall (share of recorded OUD cases flagged)")
-    plt.title("Validation: recorded OUD cases flagged as alert count increases")
+    plt.ylabel("Cumulative recall (share of recorded stroke cases flagged)")
+    plt.title("Validation: recorded stroke cases flagged as alert count increases")
     plt.legend()
     plt.show()
 
@@ -520,14 +520,14 @@ def plot_topk_at_threshold(y_true, y_score, chosen_threshold, top_k=30):
 
     plt.figure(figsize=(10, 4))
     plt.bar(tp_idx, top_scores[tp_idx],
-            label="Recorded OUD: correctly flagged (true positive)", color="tab:red")
+            label="Recorded stroke: correctly flagged (true positive)", color="tab:red")
     plt.bar(fp_idx, top_scores[fp_idx],
-            label="No recorded OUD: alert (false positive)", color="tab:gray")
+            label="No recorded stroke: alert (false positive)", color="tab:gray")
     plt.axhline(float(chosen_threshold), linestyle="--", color="black",
                 label=f"Alert threshold = {float(chosen_threshold):.2f}")
-    plt.xlabel("Validation records ranked by model-estimated OUD risk")
-    plt.ylabel("Model-estimated OUD risk score")
-    plt.title(f"Top {int(top_k)} validation records by model-estimated OUD risk")
+    plt.xlabel("Validation records ranked by model-estimated stroke risk")
+    plt.ylabel("Model-estimated stroke risk score")
+    plt.title(f"Top {int(top_k)} validation records by model-estimated stroke risk")
     plt.legend()
     plt.tight_layout()
     plt.show()
