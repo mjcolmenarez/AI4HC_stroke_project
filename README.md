@@ -2,7 +2,7 @@
 
 This project builds a calibrated stroke-risk classifier and applies the Responsible AI (RAI) Toolbox to move beyond raw accuracy toward a model that is fair, interpretable, and clinically actionable. It was developed for the AI for Healthcare (AI4HC) course as a demonstration of an end-to-end, human-in-the-loop machine learning workflow.
 
-- **Goal:** identify adults at elevated stroke risk from routinely recorded demographic and clinical data, so they can be prioritised for a preventive stroke-risk review — not to diagnose stroke.
+- **Goal:** identify adults at elevated stroke risk from routinely recorded demographic and clinical data, so they can be prioritised for a preventive stroke-risk review, not to diagnose stroke.
 - **Notebook:** `notebooks/main_notebook.ipynb`
 - **Data:** `data/healthcare-dataset-stroke-data.csv` (Kaggle Stroke Prediction Dataset, 5,110 patient-level records)
 
@@ -27,7 +27,7 @@ This project builds a calibrated stroke-risk classifier and applies the Responsi
 
 **Methods.** A scikit-learn pipeline (preprocessing + logistic regression), probability calibration (Platt scaling), threshold selection compared across three clinically motivated methods plus a statistical reference, one locked final test evaluation, and the Microsoft Responsible AI Toolbox (interpretability, error analysis, counterfactuals, causal inference) for interrogating model behaviour beyond aggregate metrics.
 
-**Interpretation discipline.** Every major analytical stage in the notebook includes a plain-language "So what?" cell translating the result into a clinical or policy implication — coefficients and causal effects describe associations/estimated effects, not proven causal mechanisms, unless explicitly qualified.
+**Interpretation discipline.** Every major analytical stage in the notebook includes a plain-language "So what?" cell translating the result into a clinical or policy implication, coefficients and causal effects describe associations/estimated effects, not proven causal mechanisms, unless explicitly qualified.
 
 **Intended use and limitations.** This is a retrospective, cross-sectional teaching analysis on a single, undocumented data source with no timestamps or site information. It is **not validated for prospective clinical prediction, diagnosis, or deployment**. See "Responsible AI and Reproducibility" below for the full limitations discussion.
 
@@ -91,7 +91,7 @@ If using JupyterLab and widgets don't render, ensure JupyterLab ≥ 3.x. No manu
    - Builds a leakage-checked preprocessing pipeline and a baseline logistic regression model (Section 7.1–7.2), and checks discrimination by subgroup against an age-only benchmark (Section 7.3).
    - Calibrates the model's probabilities (Section 8) and selects a decision threshold on validation only, comparing three clinical methods and one statistical reference (Section 9).
    - Locks the threshold to disk **before** touching the test set, then reports the one and only final test evaluation, including a subgroup fairness check (Sections 9.1–10.1).
-   - Runs the Responsible AI Toolbox — data analysis, model overview & fairness, error analysis, feature importance, counterfactuals, and causal analysis — and launches two interactive dashboards (Section 11).
+   - Runs the Responsible AI Toolbox: data analysis, model overview & fairness, error analysis, feature importance, counterfactuals, and causal analysis, and launches two interactive dashboards (Section 11).
    - Closes with a policy-implications table (pros, cons, consequences, implications) and a reproducibility statement (Section 12).
 
 ---
@@ -136,7 +136,7 @@ If using JupyterLab and widgets don't render, ensure JupyterLab ≥ 3.x. No manu
 
 **Reproducibility.** `RANDOM_STATE = 42` fixes splits, model fitting, calibration folds, and bootstrap resampling throughout. All preprocessing is fit inside the pipeline on training data only (verified explicitly in Section 7.2.1's leakage check). Calibration and thresholding use training/validation only; the test set is touched exactly once. Library versions are printed at the end of the notebook and pinned in `environment.yml`.
 
-**License and data stewardship.** This is a synthetic/undocumented teaching dataset. Any real-world use of a model like this would require institutional governance, a privacy/bias audit, and likely qualifies as high-risk clinical decision support under frameworks such as the EU AI Act — none of which has been performed here.
+**License and data stewardship.** This is a synthetic/undocumented teaching dataset. Any real-world use of a model like this would require institutional governance, a privacy/bias audit, and likely qualifies as high-risk clinical decision support under frameworks such as the EU AI Act, none of which has been performed here.
 
 ---
 
@@ -145,7 +145,7 @@ If using JupyterLab and widgets don't render, ensure JupyterLab ≥ 3.x. No manu
 - **RAI dashboard not rendering:** trust the notebook (File → Trust Notebook) and prefer JupyterLab ≥ 3.x over classic Notebook. The dashboard opens a local link (e.g. `http://localhost:...`) — open it in a browser tab and keep the notebook kernel running in the background.
 - **Import errors** (e.g. `fairlearn`, `responsibleai`, `raiwidgets`): recreate the environment — `conda env remove -n stroke_rai && conda env create -f environment.yml`.
 - **File not found on `DATA_PATH`:** confirm you are running the notebook from within `notebooks/`, so that the relative path `../data/healthcare-dataset-stroke-data.csv` resolves correctly.
-- **Causal analysis numbers differ slightly between runs:** this is expected — EconML's double machine learning involves internal cross-fitting with some run-to-run variation. Directional conclusions (which effects clear zero) are stable; exact point estimates may shift marginally.
+- **Causal analysis numbers differ slightly between runs:** this is expected because EconML's double machine learning involves internal cross-fitting with some run-to-run variation. Directional conclusions (which effects clear zero) are stable; exact point estimates may shift marginally.
 
 ---
 
