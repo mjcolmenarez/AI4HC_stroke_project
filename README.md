@@ -3,7 +3,8 @@
 This project builds a calibrated stroke-risk classifier and applies the Responsible AI (RAI) Toolbox to move beyond raw accuracy toward a model that is fair, interpretable, and clinically actionable. It was developed for the AI for Healthcare (AI4HC) course as a demonstration of an end-to-end, human-in-the-loop machine learning workflow.
 
 - **Goal:** identify adults at elevated stroke risk from routinely recorded demographic and clinical data, so they can be prioritised for a preventive stroke-risk review, not to diagnose stroke.
-- **Notebook:** `notebooks/main_notebook.ipynb`
+- **Main notebook (graded deliverable):** `notebooks/Main_Notebook_OM.ipynb`
+- **Exploratory notebook:** `notebooks/ML4HL_Stroke_EDA.ipynb` — the full data exploration. The main notebook carries its conclusions forward as a summary table (Section 3) instead of repeating the analysis.
 - **Data:** `data/healthcare-dataset-stroke-data.csv` (Kaggle Stroke Prediction Dataset, 5,110 patient-level records)
 
 **Table of Contents**
@@ -40,20 +41,24 @@ AI4HC_stroke_project/
 ├── data/
 │   └── healthcare-dataset-stroke-data.csv     Raw dataset (Kaggle, 5,110 records)
 ├── notebooks/
-│   ├── main_notebook.ipynb                    Graded deliverable: all 9 steps + RAI Toolbox
-│   └── ML4HL_Stroke_EDA.ipynb                 Original exploratory notebook (historical reference
-│                                               only — its findings and decisions are reproduced
-│                                               and carried forward into main_notebook.ipynb)
+│   ├── Main_Notebook_OM.ipynb                 Graded deliverable: framing, modelling, calibration,
+│   │                                           thresholding, locked test evaluation + RAI Toolbox
+│   ├── ML4HL_Stroke_EDA.ipynb                 Exploratory analysis: distributions, missingness,
+│   │                                           bivariate and age-adjusted relationships. Its
+│   │                                           findings are summarised in Section 3 of the main
+│   │                                           notebook, which is where they drive decisions
+│   └── artifacts/
+│       └── locked_threshold.json              Decision threshold, written before the test set is
+│                                               touched (evidence of the locking discipline in
+│                                               Section 9.1 of the main notebook)
 ├── utils.py                                   Reusable helper functions (see note below)
 ├── environment.yml                            Conda environment for reproducibility
-├── artifacts/
-│   └── locked_threshold.json                  Decision threshold, written before the test set is
-│                                               touched (evidence of the locking discipline in
-│                                               Section 9.1 of the notebook)
 └── README.md                                  This file
 ```
 
-**A note on `utils.py`:** reusable functions (scoring, threshold-selection methods, subgroup reporting, causal-effect tables, RAI model wrappers) were consolidated directly into the notebook (Section 5.1) for a fully self-contained, single-file analysis that is easy to read top to bottom. `utils.py` reflects an earlier iteration of the project and is kept for reference; the notebook does not currently import from it.
+**How the two notebooks fit together.** The exploration is deliberately kept out of the main notebook. `ML4HL_Stroke_EDA.ipynb` does the looking; `Main_Notebook_OM.ipynb` opens with a summary table (Section 3) that states each EDA finding, the evidence for it, and the modelling decision it drives — median BMI imputation, keeping `smoking_status='Unknown'` as its own level, the 18+ cohort, excluding `gender='Other'`, refusing a `bmi_missing` feature, and retaining the age proxies so the RAI analysis can test them. Read the main notebook alone and the reasoning is still complete; read the EDA notebook for the evidence behind it.
+
+**A note on `utils.py`:** reusable functions (scoring, per-1,000 impact tables, the four threshold-selection methods, subgroup reporting, causal-effect tables and the RAI model wrappers) live in `utils.py` and are imported by the main notebook in Section 5.1. The module docstring lists every function and what it is for.
 
 ---
 
@@ -83,10 +88,10 @@ If using JupyterLab and widgets don't render, ensure JupyterLab ≥ 3.x. No manu
 ## Quickstart: Run the Notebook
 
 1. Launch Jupyter (`jupyter lab` or open in VS Code) with the `stroke_rai` environment/kernel selected.
-2. Open `notebooks/main_notebook.ipynb` and run cells top to bottom.
-3. **What the notebook does, in order:**
+2. Open `notebooks/Main_Notebook_OM.ipynb` and run cells top to bottom. (Run `ML4HL_Stroke_EDA.ipynb` first if you want the exploration behind Section 3; it is independent and not required.)
+3. **What the main notebook does, in order:**
    - States the clinical question, target population, decision context, and success criteria before any modelling (Section 0).
-   - Loads and cleans the raw data, explores distributions, missingness, and bivariate/multivariate relationships to the outcome (Sections 1–4).
+   - Loads and cleans the raw data (Sections 1–2), then summarises the EDA findings and the modelling decisions each one drives (Sections 3–4).
    - Restricts the modelling cohort to adults 18+ and excludes a single unusable gender category (Section 6), then splits into a 70/15/15 stratified train/validation/test set (Section 7).
    - Builds a leakage-checked preprocessing pipeline and a baseline logistic regression model (Section 7.1–7.2), and checks discrimination by subgroup against an age-only benchmark (Section 7.3).
    - Calibrates the model's probabilities (Section 8) and selects a decision threshold on validation only, comparing three clinical methods and one statistical reference (Section 9).
