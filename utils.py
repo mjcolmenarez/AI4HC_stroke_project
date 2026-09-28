@@ -1,3 +1,89 @@
+'''
+Utility functions for the stroke risk-stratification notebook.
+
+All functions are threshold-aware and imbalance-aware: at ~5.8% stroke prevalence,
+accuracy is uninformative, so everything here reports sensitivity, PR AUC, subgroup
+breakdowns and per-1,000-patient impact counts instead.
+
+Functions
+----------
+- positive_scores(model, X):
+    Returns the predicted probability of the positive class (stroke) from a fitted estimator.
+
+- auc_report(y_true, y_score, name="model", plot=True, label="stroke"):
+    Prints and returns ROC AUC, PR AUC, outcome prevalence and PR AUC lift over the
+    prevalence baseline. Optionally plots the ROC and precision-recall curves.
+
+- wilson_ci(k, n, z=1.96):
+    Returns a Wilson score interval for a binomial proportion. Preferred over the normal
+    approximation here because subgroup counts are small and rates are near zero.
+
+- confusion_at(y_true, scores, threshold):
+    Returns (TP, FP, FN, TN) at one threshold, treating score >= threshold as "refer".
+
+- operating_point(y_true, scores, threshold, name=None):
+    Returns clinical metrics at one threshold (sensitivity, specificity, PPV) together with
+    per-1,000-patient impact counts: patients flagged, strokes caught, strokes missed,
+    false alerts and referrals per stroke caught.
+
+- threshold_recall_floor(y_true, scores, min_recall=0.80):
+    Highest threshold whose sensitivity still meets the recall floor. Data-driven, so it
+    moves with the sample (see bootstrap_threshold).
+
+- threshold_workload(scores, max_flag_rate=0.20):
+    Threshold that flags at most max_flag_rate of patients, i.e. a clinic capacity cap.
+    Needs no labels, only the score distribution.
+
+- threshold_cost_based(cost_fn_to_fp=20.0):
+    Bayes-optimal threshold 1 / (1 + C_FN/C_FP) for CALIBRATED probabilities. Depends only
+    on the stated cost ratio, not on the sample, which is why it is the threshold locked
+    in Section 9.1.
+
+- threshold_youden(y_true, scores):
+    Threshold maximising Youden's J (sensitivity + specificity - 1). Statistical reference
+    only: it encodes no clinical cost, so it is reported but not used.
+
+- bootstrap_threshold(y_true, scores, method, n_boot=1000, seed=42, **kw):
+    Refits a threshold-selection method over bootstrap resamples to show how stable the
+    chosen threshold is. Used to justify locking the cost-based threshold over the
+    recall-floor one.
+
+- decision_curve(y_true, scores, thresholds):
+    Net benefit (Vickers & Elkin, 2006) of the model against "refer everyone" and
+    "refer no one" across a range of threshold probabilities.
+
+- subgroup_report(X, y_true, scores, threshold, group_cols, min_pos=10):
+    Sensitivity, false-positive rate, PPV and flag rate per subgroup at a fixed threshold,
+    each with a Wilson CI. Subgroups with fewer than min_pos strokes are labelled
+    "not evaluable" rather than dropped, so under-representation stays visible.
+
+- subgroup_discrimination(X, y_true, scores, group_cols, min_pos=10):
+    ROC AUC and PR AUC per subgroup (threshold-free). Used to test whether the model ranks
+    patients as well inside an age band as it does across age bands.
+
+- test_summary(y_true, scores, threshold):
+    One-table final test report: ROC AUC, PR AUC, Brier score, and sensitivity,
+    specificity, PPV, NPV and flag rate with Wilson CIs.
+
+- tidy_global_effects(causal_result, per_unit=None):
+    Converts an RAI CausalResult's global effects into percentage points of absolute stroke
+    risk, rescaled to clinically meaningful units (e.g. glucose per +50 mg/dL).
+
+- plot_effects(tbl, title=...):
+    Forest plot of estimated causal effects with 95% CIs; effects whose interval excludes
+    zero are highlighted.
+
+- ThresholdedModel(model, threshold):
+    Wrapper whose .predict() applies the locked clinical threshold instead of sklearn's
+    default 0.5. Required by the RAI dashboard: at ~6% prevalence no patient scores above
+    0.5, so without it every fairness and error view would see "no stroke" for everyone.
+
+- ThresholdCentredModel(model, threshold):
+    Counterfactuals only. DiCE hard-codes 0.5 as the decision boundary, so this shifts the
+    probability on the log-odds scale to put the clinical threshold exactly at 0.5.
+    Decisions and ranking are unchanged; the displayed probabilities are shifted.
+'''
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -5,6 +91,15 @@ from sklearn.metrics import (
     roc_auc_score, average_precision_score, brier_score_loss,
     roc_curve, precision_recall_curve,
 )
+
+__all__ = [
+    "positive_scores", "auc_report", "wilson_ci", "confusion_at", "operating_point",
+    "threshold_recall_floor", "threshold_workload", "threshold_cost_based", "threshold_youden",
+    "bootstrap_threshold", "decision_curve", "subgroup_report", "subgroup_discrimination",
+    "test_summary", "tidy_global_effects", "plot_effects",
+    "ThresholdedModel", "ThresholdCentredModel",
+]
+
 
 # ── scoring ────────────────────────────────────────────────────────────────────
 def positive_scores(model, X):
@@ -31,6 +126,7 @@ def auc_report(y_true, y_score, name="model", plot=True, label="stroke"):
 
 # ── counts and clinical impact at a threshold ─────────────────────────────────
 def wilson_ci(k, n, z=1.959963984540054):
+    """Wilson score interval for a proportion — stable for small n and rates near zero."""
     if n == 0:
         return (np.nan, np.nan)
     p = k / n; denom = 1 + z**2 / n
@@ -39,6 +135,7 @@ def wilson_ci(k, n, z=1.959963984540054):
     return (max(0.0, centre - half), min(1.0, centre + half))
 
 def confusion_at(y_true, scores, threshold):
+    """(TP, FP, FN, TN) at one threshold, where score >= threshold means 'refer'."""
     y = np.asarray(y_true).astype(int); flag = np.asarray(scores) >= threshold
     return (int((flag & (y == 1)).sum()), int((flag & (y == 0)).sum()),
             int((~flag & (y == 1)).sum()), int((~flag & (y == 0)).sum()))
@@ -76,10 +173,12 @@ def threshold_cost_based(cost_fn_to_fp=20.0):
     return 1.0 / (1.0 + cost_fn_to_fp)
 
 def threshold_youden(y_true, scores):
+    """Threshold maximising Youden's J. Statistical reference only — it encodes no clinical cost."""
     fpr, tpr, thr = roc_curve(y_true, scores); j = tpr - fpr
     return float(thr[np.argmax(j[1:]) + 1])
 
 def bootstrap_threshold(y_true, scores, method, n_boot=1000, seed=42, **kw):
+    """Re-runs a threshold method over bootstrap resamples to show how stable the threshold is."""
     rng = np.random.default_rng(seed); y = np.asarray(y_true); s = np.asarray(scores); out = []
     for _ in range(n_boot):
         idx = rng.integers(0, len(y), len(y))
@@ -130,6 +229,7 @@ def subgroup_discrimination(X, y_true, scores, group_cols, min_pos=10):
     return pd.DataFrame(rows).sort_values(["Attribute", "Group"])
 
 def test_summary(y_true, scores, threshold):
+    """Final test-set report: discrimination, calibration and operating-point metrics with Wilson CIs."""
     tp, fp, fn, tn = confusion_at(y_true, scores, threshold)
     def fmt(k, n):
         lo, hi = wilson_ci(k, n); return f"{k/n:.3f} ({lo:.3f}–{hi:.3f})"
@@ -161,6 +261,7 @@ def tidy_global_effects(causal_result, per_unit=None):
     return pd.DataFrame(rows)
 
 def plot_effects(tbl, title="Estimated average causal effect on stroke risk"):
+    """Forest plot of causal effects with 95% CIs; intervals excluding zero are highlighted."""
     t = tbl.iloc[::-1].reset_index(drop=True)
     labels = t["Treatment feature"] + "  (" + t["Contrast"] + ")"
     fig, ax = plt.subplots(figsize=(8, 0.45 * len(t) + 1.2))
