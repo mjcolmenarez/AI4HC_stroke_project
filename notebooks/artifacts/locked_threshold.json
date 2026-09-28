@@ -4,5 +4,5 @@
   "model": "calibrated_clf (LogReg + Platt, cv=5)",
   "chosen_on": "validation set only",
   "random_state": 42,
-  "locked_at": "2026-09-27T14:38:28"
+  "locked_at": "2026-09-28T22:01:02"
 }
